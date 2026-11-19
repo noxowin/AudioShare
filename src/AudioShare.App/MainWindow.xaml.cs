@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using AudioShare.App.ViewModels;
@@ -20,7 +19,7 @@ public partial class MainWindow : Window
         _viewModel = new MainViewModel();
         DataContext = _viewModel;
         _tray = new TrayIcon(_viewModel, ShowFromTray, ExitApp);
-        SourceInitialized += (_, _) => UseDarkTitleBar();
+        WindowTheme.Apply(this);
 
         // 开机自启时窗口不显示，也要先创建窗口句柄，全局快捷键才能收到
         var hwnd = new WindowInteropHelper(this).EnsureHandle();
@@ -141,20 +140,9 @@ public partial class MainWindow : Window
 
     private void OnDeletePreset(object sender, RoutedEventArgs e)
     {
-        if (_viewModel.SelectedPreset is not { } name) return;
+        e.Handled = true;
+        if ((sender as FrameworkElement)?.Tag is not string name) return;
         if (MessageBox.Show(this, $"删除方案「{name}」？", "删除方案", MessageBoxButton.OKCancel) == MessageBoxResult.OK)
-            _viewModel.DeleteSelectedPreset();
-    }
-
-    [DllImport("dwmapi.dll")]
-    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
-
-    private void UseDarkTitleBar()
-    {
-        const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
-        int on = 1;
-        var hwnd = new WindowInteropHelper(this).Handle;
-        // Windows 10 1809 之前的系统不支持，忽略返回值即可
-        DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref on, sizeof(int));
+            _viewModel.DeletePreset(name);
     }
 }

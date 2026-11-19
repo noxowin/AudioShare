@@ -35,7 +35,7 @@
         <TextBlock x:Name="ResultText" TextWrapping="Wrap" Margin="0,16,0,0" Visibility="Collapsed" LineHeight="22" />
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
-            <Button x:Name="CloseButton" Style="{StaticResource SubtleButton}" Content="关闭" Padding="16,8"
+            <Button x:Name="CloseButton" Style="{StaticResource SecondaryButton}" Content="关闭" Padding="16,7" MinWidth="80"
                     Margin="0,0,8,0" Click="OnClose" />
             <Button x:Name="StartButton" Style="{StaticResource AccentButton}" Click="OnStart">
                 <TextBlock x:Name="StartText" Text="开始校准" />

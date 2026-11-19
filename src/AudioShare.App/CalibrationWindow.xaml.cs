@@ -12,6 +12,7 @@ public partial class CalibrationWindow : Window
     public CalibrationWindow(MainViewModel viewModel)
     {
         InitializeComponent();
+        WindowTheme.Apply(this);
         _viewModel = viewModel;
 
         var mics = viewModel.GetMicrophones();
