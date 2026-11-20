@@ -9,6 +9,11 @@ on:
 permissions:
   contents: write
 
+# 同一个分支连续推送时只保留最新一次，避免两次运行同时往分支提交截图
+concurrency:
+  group: screenshots-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   screenshots:
     runs-on: windows-latest
