@@ -8,6 +8,7 @@ public partial class InputDialog : Window
     private InputDialog(string title, string prompt, string initial)
     {
         InitializeComponent();
+        WindowTheme.Apply(this);
         Title = title;
         PromptText.Text = prompt;
         InputBox.Text = initial;

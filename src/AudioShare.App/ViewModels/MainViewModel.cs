@@ -88,6 +88,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             _settings.SourceDeviceId = null;
             OnPropertyChanged(nameof(SourceTitle));
             OnPropertyChanged(nameof(SourceHint));
+            OnPropertyChanged(nameof(SourceBadge));
+            OnPropertyChanged(nameof(SourceTileHint));
             bool wasRunning = IsRunning;
             if (wasRunning) Stop(keepRunningFlag: true);
             RebuildSources();
@@ -134,6 +136,29 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ? "开始后，系统声音会暂时转到这个设备并把它静音，所有打开的设备都播放同一份声音，延迟可以完全对齐。停止或退出时自动恢复原来的设置。"
         : "这个设备照常直接播放，其他打开的设备播放复制的声音。它总会比其他设备早一点，如果要对齐，请打开上面的对齐模式。";
 
+    /// <summary>设备卡片上标在来源设备旁边的小标签。</summary>
+    public string SourceBadge => AlignMode ? "中转" : "来源";
+
+    /// <summary>打开了开关、会同时播放的设备数量（界面顶部的概览用）。</summary>
+    public int EnabledCount => Devices.Count(d => d.IsEnabled && !d.IsSource);
+
+    /// <summary>界面顶部的大标题。</summary>
+    public string HeroTitle => !IsRunning ? "选好设备，点一下开始"
+        : EnabledCount == 0 ? "正在共享，还没选播放设备"
+        : $"正在同步播放到 {EnabledCount} 台设备";
+
+    /// <summary>来源设备卡片上的一句说明。</summary>
+    public string SourceTileHint => AlignMode ? "系统声音经这里转发，不会出声" : "这台设备本身就在播放";
+
+    private DeviceViewModel? _editingDevice;
+
+    /// <summary>右侧「调节」面板正在显示的设备，null 表示面板关闭（不保存）。</summary>
+    public DeviceViewModel? EditingDevice
+    {
+        get => _editingDevice;
+        set => Set(ref _editingDevice, value);
+    }
+
     public SourceOption? SelectedSource
     {
         get => _selectedSource;
@@ -153,6 +178,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             if (!Set(ref _isRunning, value)) return;
             OnPropertyChanged(nameof(ToggleText));
+            OnPropertyChanged(nameof(HeroTitle));
             StateChanged?.Invoke();
         }
     }
@@ -310,6 +336,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             _router.RemoveOutput(gone.Id);
             Devices.Remove(gone);
+            if (EditingDevice == gone) EditingDevice = null;
         }
 
         foreach (var device in active)
@@ -498,6 +525,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void UpdateStatusText()
     {
+        OnPropertyChanged(nameof(EnabledCount));
+        OnPropertyChanged(nameof(HeroTitle));
         if (!IsRunning)
         {
             StatusText = "打开要同时播放的设备，然后点击「开始共享」";
@@ -689,12 +718,18 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public void DeleteSelectedPreset()
     {
-        if (_selectedPreset == null) return;
-        _settings.Presets.Remove(_selectedPreset);
+        if (_selectedPreset != null) DeletePreset(_selectedPreset);
+    }
+
+    public void DeletePreset(string name)
+    {
+        if (!_settings.Presets.Remove(name)) return;
         _settings.Save();
-        StatusText = $"已删除方案「{_selectedPreset}」";
-        _selectedPreset = null;
+        StatusText = $"已删除方案「{name}」";
+        // 重建列表时界面会把选中项清空，删的不是当前方案就恢复选中
+        var keep = _selectedPreset == name ? null : _selectedPreset;
         RebuildPresetNames();
+        _selectedPreset = keep;
         OnPropertyChanged(nameof(SelectedPreset));
     }
 
