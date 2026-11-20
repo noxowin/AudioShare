@@ -12,8 +12,8 @@ public static class WindowTheme
     private const int DWMWA_CAPTION_COLOR = 35;
     private const int DWMWCP_ROUND = 2;
 
-    // 与 Themes/Dark.xaml 里的 WindowBrush (#202020) 一致，COLORREF 是 0x00BBGGRR
-    private const int CaptionColor = 0x00202020;
+    // 与 Themes/Dark.xaml 里的 WindowBrush (#191A1F) 一致，COLORREF 是 0x00BBGGRR
+    private const int CaptionColor = 0x001F1A19;
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);

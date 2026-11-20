@@ -12,8 +12,28 @@ public partial class App : Application
     private MainWindow? _window;
     private bool _ownsMutex;
 
-    protected override void OnStartup(StartupEventArgs e)
+    protected override async void OnStartup(StartupEventArgs e)
     {
+        int shotIndex = Array.IndexOf(e.Args, Preview.ScreenshotTool.Argument);
+        if (shotIndex >= 0)
+        {
+            // 开发用：生成界面截图后退出，不检查单实例、不碰音频设备
+            base.OnStartup(e);
+            try
+            {
+                await Preview.ScreenshotTool.RunAsync(shotIndex + 1 < e.Args.Length ? e.Args[shotIndex + 1] : "screenshots");
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine(ex);
+                System.IO.File.WriteAllText("screenshot-error.txt", ex.ToString());
+                Shutdown(1);
+                return;
+            }
+            Shutdown();
+            return;
+        }
+
         // 自动更新后重启时，旧版本可能还没完全退出，多等一会儿
         bool updated = e.Args.Contains(Updater.UpdatedArgument);
         _instanceMutex = new Mutex(false, InstanceName);

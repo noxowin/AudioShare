@@ -1,4 +1,6 @@
 using System.ComponentModel;
+using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows;
 using System.Windows.Interop;
 using AudioShare.App.ViewModels;
@@ -12,6 +14,19 @@ public partial class MainWindow : Window
     private bool _exiting;
     private bool _hintShown;
     private readonly Hotkeys _hotkeys;
+
+    /// <summary>截图用：只显示界面，不碰音频、托盘和快捷键。</summary>
+    internal MainWindow(object previewContext)
+    {
+        InitializeComponent();
+        DataContext = previewContext;
+        _viewModel = null!;
+        _tray = null!;
+        _hotkeys = null!;
+        _exiting = true;
+    }
+
+    internal void ShowSettingsPage(bool show) => SettingsPage.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
 
     public MainWindow()
     {
@@ -144,5 +159,44 @@ public partial class MainWindow : Window
         if ((sender as FrameworkElement)?.Tag is not string name) return;
         if (MessageBox.Show(this, $"删除方案「{name}」？", "删除方案", MessageBoxButton.OKCancel) == MessageBoxResult.OK)
             _viewModel.DeletePreset(name);
+    }
+
+    private void OnOpenSettings(object sender, RoutedEventArgs e)
+    {
+        _viewModel.EditingDevice = null;
+        SettingsPage.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseSettings(object sender, RoutedEventArgs e) => SettingsPage.Visibility = Visibility.Collapsed;
+
+    private void OnEditDevice(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is DeviceViewModel device) _viewModel.EditingDevice = device;
+    }
+
+    private void OnCloseEditor(object sender, RoutedEventArgs e) => _viewModel.EditingDevice = null;
+
+    /// <summary>设备卡片上调音量的那一行：点空白处不要误把设备关掉。</summary>
+    private void OnSwallowClick(object sender, MouseButtonEventArgs e) => e.Handled = true;
+
+    /// <summary>方案一行放不下时，鼠标滚轮横向滚动。</summary>
+    private void OnPresetWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (sender is not ScrollViewer viewer) return;
+        viewer.ScrollToHorizontalOffset(viewer.HorizontalOffset - e.Delta / 3.0);
+        e.Handled = true;
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            if (_viewModel.EditingDevice != null) _viewModel.EditingDevice = null;
+            else if (SettingsPage.Visibility == Visibility.Visible) SettingsPage.Visibility = Visibility.Collapsed;
+            else return;
+            e.Handled = true;
+            return;
+        }
+        base.OnKeyDown(e);
     }
 }

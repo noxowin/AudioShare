@@ -1,0 +1,53 @@
+# 在 Windows 上用假数据打开界面并截图（AudioShare.exe --screenshots），顺便检查界面能否正常加载。
+# PR 上运行时把截图提交回 PR 分支的 docs/screenshots，README 里直接引用。
+name: Screenshots
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  screenshots:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: 编译
+        run: dotnet build src/AudioShare.App -c Release -o build
+
+      - name: 截图
+        shell: pwsh
+        run: |
+          $p = Start-Process build/AudioShare.exe -ArgumentList '--screenshots', "$PWD/docs/screenshots" -PassThru -Wait
+          if ($p.ExitCode -ne 0) {
+            if (Test-Path screenshot-error.txt) { Get-Content screenshot-error.txt }
+            exit 1
+          }
+          Get-ChildItem docs/screenshots
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: docs/screenshots
+
+      - name: 提交截图到 PR 分支
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/screenshots
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "Update UI screenshots"
+            git push
+          }
