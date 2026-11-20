@@ -52,14 +52,17 @@ public static class ScreenshotTool
         // 等布局、开关动画走完
         await Task.Delay(600);
         await window.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+        // 只截客户区（不含系统标题栏），截图和窗口里看到的内容一致
+        var content = (FrameworkElement)window.Content;
         const double scale = 1.5;
-        var bitmap = new RenderTargetBitmap((int)(window.ActualWidth * scale), (int)(window.ActualHeight * scale),
+        var bitmap = new RenderTargetBitmap((int)(content.ActualWidth * scale), (int)(content.ActualHeight * scale),
             96 * scale, 96 * scale, PixelFormats.Pbgra32);
         var visual = new DrawingVisual();
+        var size = new Rect(0, 0, content.ActualWidth, content.ActualHeight);
         using (var dc = visual.RenderOpen())
         {
-            dc.DrawRectangle((Brush)window.FindResource("WindowBrush"), null, new Rect(0, 0, window.ActualWidth, window.ActualHeight));
-            dc.DrawRectangle(new VisualBrush((Visual)window.Content), null, new Rect(0, 0, window.ActualWidth, window.ActualHeight));
+            dc.DrawRectangle((Brush)window.FindResource("WindowBrush"), null, size);
+            dc.DrawRectangle(new VisualBrush(content) { Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top }, null, size);
         }
         bitmap.Render(visual);
         var encoder = new PngBitmapEncoder();

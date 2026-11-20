@@ -80,7 +80,7 @@
 
         <!-- ───────────── 设备卡片 ───────────── -->
         <DataTemplate x:Key="DeviceTile" DataType="{x:Type vm:DeviceViewModel}">
-            <ToggleButton Margin="6" Height="132" Cursor="Hand" IsChecked="{Binding IsEnabled}" IsEnabled="{Binding CanToggle}"
+            <ToggleButton Margin="6" Height="132" Cursor="Hand" Foreground="{StaticResource TextBrush}" IsChecked="{Binding IsEnabled}" IsEnabled="{Binding CanToggle}"
                           FocusVisualStyle="{StaticResource FocusRing}" ToolTip="{Binding Name}">
                 <ToggleButton.Template>
                     <ControlTemplate TargetType="ToggleButton">
@@ -440,7 +440,7 @@
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Text="播放设备" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
                             <TextBlock FontSize="12" Foreground="{StaticResource SubTextBrush}" VerticalAlignment="Center" Margin="8,1,0,0">
-                                <Run Text="已选" /><Run Text="{Binding EnabledCount, Mode=OneWay}" /><Run Text=" 台" />
+                                <Run Text="已选 " /><Run Text="{Binding EnabledCount, Mode=OneWay}" /><Run Text=" 台" />
                             </TextBlock>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
