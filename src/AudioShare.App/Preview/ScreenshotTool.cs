@@ -57,14 +57,9 @@ public static class ScreenshotTool
         const double scale = 1.5;
         var bitmap = new RenderTargetBitmap((int)(content.ActualWidth * scale), (int)(content.ActualHeight * scale),
             96 * scale, 96 * scale, PixelFormats.Pbgra32);
-        var visual = new DrawingVisual();
-        var size = new Rect(0, 0, content.ActualWidth, content.ActualHeight);
-        using (var dc = visual.RenderOpen())
-        {
-            dc.DrawRectangle((Brush)window.FindResource("WindowBrush"), null, size);
-            dc.DrawRectangle(new VisualBrush(content) { Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top }, null, size);
-        }
-        bitmap.Render(visual);
+        if (content is System.Windows.Controls.Panel panel && panel.Background == null)
+            panel.Background = (Brush)window.FindResource("WindowBrush");
+        bitmap.Render(content);
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
         await using var file = File.Create(path);
