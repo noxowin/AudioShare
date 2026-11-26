@@ -225,9 +225,7 @@
             <!-- 顶栏 -->
             <Grid Margin="24,12,18,12">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border Width="28" Height="28" CornerRadius="8" Background="{StaticResource AccentGradientBrush}">
-                        <TextBlock Text="&#xE767;" Style="{StaticResource Glyph}" FontSize="14" Foreground="White" />
-                    </Border>
+                    <Image Source="Assets/app.ico" Width="28" Height="28" RenderOptions.BitmapScalingMode="HighQuality" />
                     <TextBlock Text="AudioShare" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0,0,0" />
                 </StackPanel>
                 <Button Style="{StaticResource IconButton}" HorizontalAlignment="Right" Click="OnOpenSettings" ToolTip="设置">
