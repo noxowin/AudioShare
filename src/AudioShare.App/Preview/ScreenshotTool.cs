@@ -59,6 +59,9 @@ public static class ScreenshotTool
         await window.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
         // 只截客户区（不含系统标题栏），截图和窗口里看到的内容一致
         var content = (FrameworkElement)window.Content;
+        // 根布局本身是透明的（窗口背景画在窗口上），截图时给它补上背景色，要在排版之前设置才会画出来
+        if (content is System.Windows.Controls.Panel panel && panel.Background == null)
+            panel.Background = (Brush)window.FindResource("WindowBrush");
         if (width > 0)
         {
             window.ApplyLayout(width);
@@ -75,8 +78,6 @@ public static class ScreenshotTool
         const double scale = 1.5;
         var bitmap = new RenderTargetBitmap((int)(w * scale), (int)(h * scale),
             96 * scale, 96 * scale, PixelFormats.Pbgra32);
-        if (content is System.Windows.Controls.Panel panel && panel.Background == null)
-            panel.Background = (Brush)window.FindResource("WindowBrush");
         bitmap.Render(content);
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
