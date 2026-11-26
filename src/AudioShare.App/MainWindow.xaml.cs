@@ -199,4 +199,57 @@ public partial class MainWindow : Window
         }
         base.OnKeyDown(e);
     }
+
+    // ───────────── 自适应布局 ─────────────
+    // 控件和字号始终保持原尺寸，只改变排列：
+    //   宽（≥ 1060）：状态区固定在左侧一列，设备卡片在右侧按宽度分 2~4 列
+    //   普通：状态区在上（按钮在左、文字在右），设备卡片在下分 1~3 列
+    //   窄（< 600）：状态区改成上下排列（按钮在上、文字居中），设备卡片 1 列
+
+    private enum LayoutMode { Narrow, Normal, Wide }
+
+    private LayoutMode? _layout;
+
+    private void OnHomeSizeChanged(object sender, SizeChangedEventArgs e) => ApplyLayout(e.NewSize.Width);
+
+    internal void ApplyLayout(double width)
+    {
+        var mode = width >= 1060 ? LayoutMode.Wide : width < 600 ? LayoutMode.Narrow : LayoutMode.Normal;
+        if (mode == _layout) return;
+        _layout = mode;
+
+        bool wide = mode == LayoutMode.Wide;
+        SideColumn.Width = wide ? new GridLength(300) : new GridLength(1, GridUnitType.Star);
+        MainColumn.Width = wide ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
+
+        Grid.SetRow(Hero, 0);
+        Grid.SetColumn(Hero, 0);
+        Grid.SetColumnSpan(Hero, wide ? 1 : 2);
+        Grid.SetRowSpan(Hero, wide ? 2 : 1);
+        Hero.Margin = wide ? new Thickness(0, 0, 20, 0) : new Thickness(0);
+
+        Grid.SetRow(DevicesSection, wide ? 0 : 1);
+        Grid.SetColumn(DevicesSection, wide ? 1 : 0);
+        Grid.SetColumnSpan(DevicesSection, wide ? 1 : 2);
+        Grid.SetRowSpan(DevicesSection, wide ? 2 : 1);
+        DevicesHeader.Margin = wide ? new Thickness(0, 4, 0, 6) : new Thickness(0, 22, 0, 6);
+
+        // 宽和窄时状态区是竖着排的：按钮在上，文字在下居中
+        bool stacked = mode != LayoutMode.Normal;
+        Grid.SetRow(HeroText, stacked ? 1 : 0);
+        Grid.SetColumn(HeroText, stacked ? 0 : 1);
+        Grid.SetColumnSpan(HeroText, stacked ? 2 : 1);
+        Grid.SetColumnSpan(HeroButton, stacked ? 2 : 1);
+        HeroButton.Margin = stacked ? new Thickness(0, 4, 0, 16) : new Thickness(0, 0, 22, 0);
+        HeroButton.HorizontalAlignment = stacked ? HorizontalAlignment.Center : HorizontalAlignment.Left;
+        var align = stacked ? TextAlignment.Center : TextAlignment.Left;
+        HeroTitleText.TextAlignment = align;
+        HeroStatusText.TextAlignment = align;
+        var panelAlign = stacked ? HorizontalAlignment.Center : HorizontalAlignment.Left;
+        HeroSteps.HorizontalAlignment = panelAlign;
+        HeroChips.HorizontalAlignment = panelAlign;
+        // 宽布局里左侧只有 300 宽，三步说明竖着排更好读
+        HeroSteps.Orientation = wide ? Orientation.Vertical : Orientation.Horizontal;
+        HeroChips.Orientation = wide ? Orientation.Vertical : Orientation.Horizontal;
+    }
 }

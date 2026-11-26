@@ -44,18 +44,36 @@ public static class ScreenshotTool
         await Capture(window, Path.Combine(folder, "4-settings.png"));
         window.ShowSettingsPage(false);
 
+        // 不同窗口大小下的自适应布局（截图机器的屏幕可能比这还小，所以直接按指定大小排版后截图）
+        await Capture(window, Path.Combine(folder, "5-wide.png"), 1320, 780);
+        vm.SetRunning(false);
+        await Capture(window, Path.Combine(folder, "6-narrow.png"), 520, 900);
+
         window.Close();
     }
 
-    private static async Task Capture(Window window, string path)
+    private static async Task Capture(MainWindow window, string path, double width = 0, double height = 0)
     {
         // 等布局、开关动画走完
         await Task.Delay(600);
         await window.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
         // 只截客户区（不含系统标题栏），截图和窗口里看到的内容一致
         var content = (FrameworkElement)window.Content;
+        if (width > 0)
+        {
+            window.ApplyLayout(width);
+            content.Measure(new Size(width, height));
+            content.Arrange(new Rect(0, 0, width, height));
+        }
+        else
+        {
+            window.ApplyLayout(content.ActualWidth);
+            content.Measure(new Size(content.ActualWidth, content.ActualHeight));
+            content.Arrange(new Rect(0, 0, content.ActualWidth, content.ActualHeight));
+        }
+        double w = width > 0 ? width : content.ActualWidth, h = height > 0 ? height : content.ActualHeight;
         const double scale = 1.5;
-        var bitmap = new RenderTargetBitmap((int)(content.ActualWidth * scale), (int)(content.ActualHeight * scale),
+        var bitmap = new RenderTargetBitmap((int)(w * scale), (int)(h * scale),
             96 * scale, 96 * scale, PixelFormats.Pbgra32);
         if (content is System.Windows.Controls.Panel panel && panel.Background == null)
             panel.Background = (Brush)window.FindResource("WindowBrush");

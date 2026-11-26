@@ -3,8 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:AudioShare.App.ViewModels"
         xmlns:local="clr-namespace:AudioShare.App"
+        xmlns:ctl="clr-namespace:AudioShare.App.Controls"
         Title="AudioShare"
-        Width="780" Height="680" MinWidth="640" MinHeight="540"
+        Width="800" Height="700" MinWidth="480" MinHeight="540"
         WindowStartupLocation="CenterScreen"
         Icon="Assets/app.ico"
         Background="{StaticResource WindowBrush}"
@@ -80,7 +81,7 @@
 
         <!-- ───────────── 设备卡片 ───────────── -->
         <DataTemplate x:Key="DeviceTile" DataType="{x:Type vm:DeviceViewModel}">
-            <ToggleButton Margin="6" Height="132" Cursor="Hand" Foreground="{StaticResource TextBrush}" IsChecked="{Binding IsEnabled}" IsEnabled="{Binding CanToggle}"
+            <ToggleButton Margin="6" MinHeight="132" Cursor="Hand" Foreground="{StaticResource TextBrush}" IsChecked="{Binding IsEnabled}" IsEnabled="{Binding CanToggle}"
                           FocusVisualStyle="{StaticResource FocusRing}" ToolTip="{Binding Name}">
                 <ToggleButton.Template>
                     <ControlTemplate TargetType="ToggleButton">
@@ -108,6 +109,11 @@
                                     <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                                     <TextBlock x:Name="StatusLine" Text="{Binding Status}" FontSize="12" Margin="0,2,0,0"
                                                Foreground="{StaticResource SubTextBrush}" TextTrimming="CharacterEllipsis" />
+                                    <!-- 卡片宽时能看全：格式、延迟、单声道、音效 -->
+                                    <TextBlock x:Name="Details" FontSize="11" Margin="0,3,0,0" Foreground="{StaticResource TertiaryTextBrush}"
+                                               TextTrimming="CharacterEllipsis" Visibility="Collapsed">
+                                        <Run Text="{Binding Format, Mode=OneWay}" /><Run Text="  ·  延迟 +" /><Run Text="{Binding DelayMs, Mode=OneWay, StringFormat={}{0:0}}" /><Run Text=" ms  ·  " /><Run Text="{Binding EffectsSummary, Mode=OneWay}" />
+                                    </TextBlock>
                                 </StackPanel>
 
                                 <!-- 右上角的勾 -->
@@ -121,10 +127,10 @@
                                              Height="3" Margin="0,12,0,0" Value="{Binding Level, Mode=OneWay}" Visibility="Collapsed" />
 
                                 <!-- 底部：没选中时一句提示；选中后音量 + 调节 -->
-                                <TextBlock x:Name="Hint" Grid.Row="3" Grid.ColumnSpan="3" Text="点击卡片，在这台设备上同时播放"
+                                <TextBlock x:Name="Hint" Grid.Row="3" Grid.ColumnSpan="3" Text="点击卡片，在这台设备上同时播放" Margin="0,12,0,0"
                                            FontSize="12" Foreground="{StaticResource TertiaryTextBrush}" TextTrimming="CharacterEllipsis" />
 
-                                <StackPanel x:Name="SourceInfo" Grid.Row="3" Grid.ColumnSpan="3" Orientation="Horizontal" Visibility="Collapsed">
+                                <StackPanel x:Name="SourceInfo" Grid.Row="3" Grid.ColumnSpan="3" Orientation="Horizontal" Visibility="Collapsed" Margin="0,12,0,0">
                                     <Border Style="{StaticResource Pill}" Background="{StaticResource SuccessSoftBrush}" Margin="0,0,8,0">
                                         <TextBlock Text="{Binding DataContext.SourceBadge, RelativeSource={RelativeSource AncestorType=Window}}"
                                                    FontSize="11" Foreground="{StaticResource SuccessBrush}" />
@@ -133,7 +139,7 @@
                                                FontSize="12" Foreground="{StaticResource TertiaryTextBrush}" VerticalAlignment="Center" />
                                 </StackPanel>
 
-                                <Grid x:Name="QuickControls" Grid.Row="3" Grid.ColumnSpan="3" Visibility="Collapsed"
+                                <Grid x:Name="QuickControls" Grid.Row="3" Grid.ColumnSpan="3" Visibility="Collapsed" Margin="0,12,0,0"
                                       Background="Transparent" MouseLeftButtonDown="OnSwallowClick">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
@@ -178,6 +184,7 @@
                                 <Setter TargetName="CheckMark" Property="Visibility" Value="Visible" />
                                 <Setter TargetName="Hint" Property="Visibility" Value="Collapsed" />
                                 <Setter TargetName="QuickControls" Property="Visibility" Value="Visible" />
+                                <Setter TargetName="Details" Property="Visibility" Value="Visible" />
                                 <Setter TargetName="Meter" Property="Visibility" Value="Visible" />
                                 <Setter TargetName="StatusLine" Property="Foreground" Value="{StaticResource SuccessBrush}" />
                             </Trigger>
@@ -189,6 +196,7 @@
                                 <Setter TargetName="Check" Property="Visibility" Value="Collapsed" />
                                 <Setter TargetName="Hint" Property="Visibility" Value="Collapsed" />
                                 <Setter TargetName="QuickControls" Property="Visibility" Value="Collapsed" />
+                                <Setter TargetName="Details" Property="Visibility" Value="Collapsed" />
                                 <Setter TargetName="SourceInfo" Property="Visibility" Value="Visible" />
                                 <Setter TargetName="Meter" Property="Visibility" Value="Visible" />
                                 <Setter TargetName="StatusLine" Property="Foreground" Value="{StaticResource SubTextBrush}" />
@@ -206,7 +214,7 @@
 
     <Grid>
         <!-- ═════════════ 主页 ═════════════ -->
-        <Grid x:Name="HomePage">
+        <Grid x:Name="HomePage" SizeChanged="OnHomeSizeChanged">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -259,10 +267,19 @@
             </Border>
 
             <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-                <StackPanel Margin="24,0,18,16">
+                <!-- 自适应布局：窗口宽时状态区在左、设备在右；普通/窄窗口时上下排列（见 MainWindow.xaml.cs 的 ApplyLayout） -->
+                <Grid x:Name="ContentGrid" Margin="24,0,18,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition x:Name="SideColumn" Width="*" />
+                        <ColumnDefinition x:Name="MainColumn" Width="0" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
                     <!-- ───────────── 开始 / 状态 ───────────── -->
-                    <Border CornerRadius="16" Padding="24,20" BorderThickness="1">
+                    <Border x:Name="Hero" Grid.ColumnSpan="2" CornerRadius="16" Padding="24,20" BorderThickness="1" VerticalAlignment="Top">
                         <Border.Style>
                             <Style TargetType="Border">
                                 <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}" />
@@ -290,14 +307,18 @@
                                 </Style.Triggers>
                             </Style>
                         </Border.Style>
-                        <Grid>
+                        <Grid x:Name="HeroGrid">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
 
                             <!-- 大圆按钮 -->
-                            <StackPanel Margin="0,0,22,0" VerticalAlignment="Center">
+                            <StackPanel x:Name="HeroButton" Margin="0,0,22,0" VerticalAlignment="Center">
                                 <Button Command="{Binding ToggleCommand}" Width="88" Height="88" Cursor="Hand"
                                         FocusVisualStyle="{StaticResource FocusRing}" ToolTip="快捷键 Ctrl+Alt+S">
                                     <Button.Template>
@@ -373,12 +394,12 @@
                                 </TextBlock>
                             </StackPanel>
 
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding HeroTitle}" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap" />
-                                <TextBlock Text="{Binding StatusText}" Style="{StaticResource Caption}" FontSize="13" Margin="0,4,0,0" />
+                            <StackPanel x:Name="HeroText" Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock x:Name="HeroTitleText" Text="{Binding HeroTitle}" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                <TextBlock x:Name="HeroStatusText" Text="{Binding StatusText}" Style="{StaticResource Caption}" FontSize="13" Margin="0,4,0,0" />
 
                                 <!-- 没开始时：三步说明 -->
-                                <WrapPanel Margin="0,12,0,0">
+                                <WrapPanel x:Name="HeroSteps" Margin="0,12,0,0">
                                     <WrapPanel.Style>
                                         <Style TargetType="WrapPanel">
                                             <Style.Triggers>
@@ -406,7 +427,7 @@
                                 </WrapPanel>
 
                                 <!-- 共享中：当前模式和缓冲 -->
-                                <WrapPanel Margin="0,12,0,0" Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}">
+                                <WrapPanel x:Name="HeroChips" Margin="0,12,0,0" Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}">
                                     <Border Style="{StaticResource Pill}" Background="#0DFFFFFF" CornerRadius="12" Padding="10,3" Margin="0,0,8,4">
                                         <TextBlock FontSize="12" Foreground="{StaticResource SubTextBrush}">
                                             <TextBlock.Style>
@@ -436,7 +457,8 @@
                     </Border>
 
                     <!-- ───────────── 播放设备 ───────────── -->
-                    <Grid Margin="0,22,0,6">
+                    <StackPanel x:Name="DevicesSection" Grid.Row="1" Grid.ColumnSpan="2">
+                    <Grid x:Name="DevicesHeader" Margin="0,22,0,6">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Text="播放设备" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
                             <TextBlock FontSize="12" Foreground="{StaticResource SubTextBrush}" VerticalAlignment="Center" Margin="8,1,0,0">
@@ -462,7 +484,7 @@
                                   Focusable="False">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <UniformGrid Columns="2" VerticalAlignment="Top" />
+                                <ctl:AdaptiveGrid MinItemWidth="300" MaxColumns="4" VerticalAlignment="Top" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                     </ItemsControl>
@@ -486,7 +508,8 @@
                                        HorizontalAlignment="Center" TextAlignment="Center" Margin="0,4,0,0" />
                         </StackPanel>
                     </Border>
-                </StackPanel>
+                    </StackPanel>
+                </Grid>
             </ScrollViewer>
 
             <!-- ───────────── 底部：方案 ───────────── -->
@@ -695,7 +718,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <StackPanel Orientation="Horizontal" Margin="20,12,24,4">
+            <StackPanel Orientation="Horizontal" Margin="20,12,18,4" MaxWidth="906">
                 <Button Style="{StaticResource IconButton}" Click="OnCloseSettings" ToolTip="返回" Background="{StaticResource ControlBrush}">
                     <TextBlock Text="&#xE72B;" Style="{StaticResource Glyph}" FontSize="15" />
                 </Button>
@@ -703,7 +726,7 @@
             </StackPanel>
 
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                <StackPanel Margin="24,0,18,24">
+                <StackPanel Margin="24,0,18,24" MaxWidth="900">
 
                     <TextBlock Text="播放方式" Style="{StaticResource SettingsSection}" />
                     <Border Style="{StaticResource Card}" Padding="18,0">
